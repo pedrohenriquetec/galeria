@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GALERIA // DDS7</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Decorações de fundo do design system -->
+  <div class="background-decoration" aria-hidden="true">
+    <span class="gradient-orb orb-1"></span>
+    <span class="gradient-orb orb-2"></span>
+    <span class="gradient-orb orb-3"></span>
+    <span class="gradient-orb orb-4"></span>
+    <span class="gradient-orb orb-5"></span>
+    <span class="gradient-orb orb-6"></span>
+  </div>
+
+  <div class="particles" aria-hidden="true">
+    <span class="particle"></span>
+    <span class="particle"></span>
+    <span class="particle"></span>
+    <span class="particle"></span>
+    <span class="particle"></span>
+    <span class="particle"></span>
+    <span class="particle"></span>
+    <span class="particle"></span>
+    <span class="particle"></span>
+    <span class="particle"></span>
+    <span class="particle"></span>
+    <span class="particle"></span>
+    <span class="particle"></span>
+    <span class="particle"></span>
+    <span class="particle"></span>
+  </div>
+
+  <header class="header">
+    <h1>FORMATURA DDS7</h1>
+    <p>Galeria neon de imagens e videos da turma</p>
+    <div id="clock" class="clock">00:00:00</div>
+  </header>
+
+  <main class="page">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="tabs" role="tablist" aria-label="Tipos de arquivo">
+          <button class="tab-btn active" role="tab" aria-selected="true" aria-controls="panel-imagens" id="tab-imagens" data-tab="imagens">
+            Imagens
+          </button>
+          <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-videos" id="tab-videos" data-tab="videos">
+            Videos
+          </button>
+        </div>
+        <button id="backBtn" class="back-button" type="button" hidden>Voltar</button>
+      </div>
+      <div class="toolbar-right">
+        <div id="folderPath" class="folder-path">Raiz</div>
+      </div>
+    </div>
+
+    <section class="content">
+      <div class="panel active" id="panel-imagens" role="tabpanel" aria-labelledby="tab-imagens">
+        <div id="imageGallery" class="gallery-grid" aria-live="polite"></div>
+        <p id="emptyImages" class="empty-state">Nenhuma imagem no banco de dados</p>
+      </div>
+
+      <div class="panel" id="panel-videos" role="tabpanel" aria-labelledby="tab-videos" hidden>
+        <div id="videoGallery" class="gallery-grid" aria-live="polite"></div>
+        <p id="emptyVideos" class="empty-state">Nenhum video no banco de dados</p>
+      </div>
+    </section>
+  </main>
+
+  <input id="fileInput" type="file" multiple hidden />
+
+  <div class="fab-container" aria-label="Ações rápidas">
+    <button id="fabToggleBtn" class="fab-btn" type="button" aria-expanded="false" aria-label="Abrir menu de ações">+</button>
+    <div id="fabMenu" class="fab-menu" hidden>
+      <button id="fabAddPhoto" class="fab-item" type="button">Adicionar foto</button>
+      <button id="fabAddFolder" class="fab-item" type="button">Adicionar pasta</button>
+      <button id="fabEditName" class="fab-item" type="button">Editar nome</button>
+    </div>
+  </div>
+
+  <!-- Lightbox -->
+  <div id="imageModal" class="modal" hidden>
+    <div class="lightbox" role="dialog" aria-modal="true" aria-label="Visualizacao ampliada">
+      <button id="closeImageModal" class="close-lightbox" type="button" aria-label="Fechar visualizacao">&times;</button>
+      <div class="lightbox-stage">
+        <button id="prevImageBtn" class="lightbox-nav lightbox-nav-prev" type="button" aria-label="Imagem anterior">&#8249;</button>
+        <img id="lightboxImage" alt="Imagem ampliada" />
+        <button id="nextImageBtn" class="lightbox-nav lightbox-nav-next" type="button" aria-label="Proxima imagem">&#8250;</button>
+      </div>
+      <p id="lightboxCaption"></p>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
