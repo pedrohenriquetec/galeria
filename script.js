@@ -12,22 +12,22 @@ const ACCEPTED_EXT = {
   videos: ["mp4", "webm", "ogg"],
 };
 
-const tabs = document.querySelectorAll(".tab-btn");
 const panels = {
   imagens: document.getElementById("panel-imagens"),
-  videos: document.getElementById("panel-videos"),
 };
 
 const imageGallery = document.getElementById("imageGallery");
-const videoGallery = document.getElementById("videoGallery");
 const emptyImages = document.getElementById("emptyImages");
-const emptyVideos = document.getElementById("emptyVideos");
 const backBtn = document.getElementById("backBtn");
 const folderPath = document.getElementById("folderPath");
+const toolbar = document.querySelector(".toolbar");
 const fileInput = document.getElementById("fileInput");
 
+
 const imageModal = document.getElementById("imageModal");
+const lightboxContent = document.getElementById("lightboxContent");
 const lightboxImage = document.getElementById("lightboxImage");
+const lightboxVideo = document.getElementById("lightboxVideo");
 const lightboxCaption = document.getElementById("lightboxCaption");
 const closeImageModal = document.getElementById("closeImageModal");
 const prevImageBtn = document.getElementById("prevImageBtn");
@@ -36,11 +36,12 @@ const nextImageBtn = document.getElementById("nextImageBtn");
 const fabToggleBtn = document.getElementById("fabToggleBtn");
 const fabMenu = document.getElementById("fabMenu");
 const fabAddPhoto = document.getElementById("fabAddPhoto");
+const fabAddVideo = document.getElementById("fabAddVideo");
 const fabAddFolder = document.getElementById("fabAddFolder");
 const fabEditName = document.getElementById("fabEditName");
+const fabDeleteItem = document.getElementById("fabDeleteItem");
 
 const state = {
-  activeTab: "imagens",
   currentFolderId: null,
   selectedItemId: null,
   items: [],
@@ -51,17 +52,29 @@ let db;
 
 function openDatabase() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    try {
+      const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-    request.onupgradeneeded = (event) => {
-      const connection = event.target.result;
-      if (!connection.objectStoreNames.contains(STORE_NAME)) {
-        connection.createObjectStore(STORE_NAME, { keyPath: "id" });
-      }
-    };
+      request.onupgradeneeded = (event) => {
+        const connection = event.target.result;
+        if (!connection.objectStoreNames.contains(STORE_NAME)) {
+          connection.createObjectStore(STORE_NAME, { keyPath: "id" });
+        }
+      };
 
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = (event) => {
+        console.error("Erro ao abrir IndexedDB:", event.target.error);
+        reject(event.target.error);
+      };
+      
+      request.onblocked = () => {
+        console.warn("Requisição IndexedDB bloqueada");
+      };
+    } catch (err) {
+      console.error("Exceção ao tentar abrir IndexedDB:", err);
+      reject(err);
+    }
   });
 }
 
@@ -113,45 +126,259 @@ function makeCardTitle(fileName) {
   return fileName.length > 42 ? `${fileName.slice(0, 39)}...` : fileName;
 }
 
+/* ============================================
+ * TOAST & MODAL NOTIFICATION SYSTEM
+ * ============================================ */
+
+// Ensure toast container exists
+function ensureToastContainer() {
+  let container = document.getElementById("toastContainer");
+  if (!container) {
+    container = document.createElement("div");
+    container.id = "toastContainer";
+    container.className = "toast-container";
+    document.body.appendChild(container);
+  }
+  return container;
+}
+
+function showToast(message, type = "info", duration = 3000) {
+  const container = ensureToastContainer();
+  const toast = document.createElement("div");
+  const typeClass = type === "success" ? "toast-success" : type === "error" ? "toast-error" : type === "warning" ? "toast-warning" : "toast-info";
+  toast.className = `toast ${typeClass}`;
+  toast.textContent = message;
+
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.classList.add("removing");
+    setTimeout(() => toast.remove(), 300);
+  }, duration);
+}
+
+function showConfirmModal(title, message, onConfirm, onCancel) {
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay";
+
+  const dialog = document.createElement("div");
+  dialog.className = "modal-dialog";
+
+  dialog.innerHTML = `
+    <div class="modal-header">
+      <h2>${title}</h2>
+    </div>
+    <div class="modal-body">
+      <p>${message}</p>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-btn modal-btn-secondary cancel-btn">Cancelar</button>
+      <button class="modal-btn modal-btn-primary confirm-btn">Confirmar</button>
+    </div>
+  `;
+
+  overlay.appendChild(dialog);
+  document.body.appendChild(overlay);
+
+  function cleanup() {
+    overlay.classList.add("removing");
+    setTimeout(() => overlay.remove(), 300);
+  }
+
+  dialog.querySelector(".confirm-btn").addEventListener("click", () => {
+    cleanup();
+    if (onConfirm) onConfirm();
+  });
+
+  dialog.querySelector(".cancel-btn").addEventListener("click", () => {
+    cleanup();
+    if (onCancel) onCancel();
+  });
+
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) {
+      cleanup();
+      if (onCancel) onCancel();
+    }
+  });
+}
+
+function showInputModal(title, message, initialValue = "", onConfirm, onCancel) {
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay";
+
+  const dialog = document.createElement("div");
+  dialog.className = "modal-dialog";
+
+  dialog.innerHTML = `
+    <div class="modal-header">
+      <h2>${title}</h2>
+    </div>
+    <div class="modal-body">
+      <p>${message}</p>
+      <input type="text" class="input-field" placeholder="Digite aqui..." value="${initialValue.replace(/"/g, '&quot;')}" />
+    </div>
+    <div class="modal-footer">
+      <button class="modal-btn modal-btn-secondary cancel-btn">Cancelar</button>
+      <button class="modal-btn modal-btn-primary confirm-btn">Confirmar</button>
+    </div>
+  `;
+
+  overlay.appendChild(dialog);
+  document.body.appendChild(overlay);
+
+  const inputField = dialog.querySelector(".input-field");
+  inputField.focus();
+  inputField.select();
+
+  function cleanup() {
+    overlay.classList.add("removing");
+    setTimeout(() => overlay.remove(), 300);
+  }
+
+  dialog.querySelector(".confirm-btn").addEventListener("click", () => {
+    const value = inputField.value.trim();
+    cleanup();
+    if (onConfirm) onConfirm(value);
+  });
+
+  dialog.querySelector(".cancel-btn").addEventListener("click", () => {
+    cleanup();
+    if (onCancel) onCancel();
+  });
+
+  inputField.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+      const value = inputField.value.trim();
+      cleanup();
+      if (onConfirm) onConfirm(value);
+    }
+  });
+
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) {
+      cleanup();
+      if (onCancel) onCancel();
+    }
+  });
+}
+
+function showItemSelectionModal(title, message, items, onSelect, onCancel) {
+  if (!items.length) {
+    showToast("Nenhum item disponível para editar", "warning");
+    return;
+  }
+
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay";
+
+  const dialog = document.createElement("div");
+  dialog.className = "modal-dialog";
+
+  let itemsHtml = items.map((item, index) => {
+    const icon = item.type === "folder" ? "📁" : (item.category === "videos" ? "🎥" : "🖼️");
+    return `
+      <div class="item-option" data-index="${index}">
+        <span class="item-option-icon">${icon}</span>
+        <div class="item-option-text">
+          <div class="item-option-name">${item.name}</div>
+          <div class="item-option-type">${item.type === "folder" ? "Pasta" : (item.category === "videos" ? "Vídeo" : "Imagem")}</div>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  dialog.innerHTML = `
+    <div class="modal-header">
+      <h2>${title}</h2>
+    </div>
+    <div class="modal-body">
+      <p>${message}</p>
+      <div class="item-list">
+        ${itemsHtml}
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-btn modal-btn-secondary cancel-btn">Cancelar</button>
+    </div>
+  `;
+
+  overlay.appendChild(dialog);
+  document.body.appendChild(overlay);
+
+  function cleanup() {
+    overlay.classList.add("removing");
+    setTimeout(() => overlay.remove(), 300);
+  }
+
+  const itemOptions = dialog.querySelectorAll(".item-option");
+  itemOptions.forEach((option) => {
+    option.addEventListener("click", () => {
+      const index = parseInt(option.dataset.index);
+      cleanup();
+      if (onSelect) onSelect(items[index]);
+    });
+  });
+
+  dialog.querySelector(".cancel-btn").addEventListener("click", () => {
+    cleanup();
+    if (onCancel) onCancel();
+  });
+
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) {
+      cleanup();
+      if (onCancel) onCancel();
+    }
+  });
+}
+
 function getFileExtension(fileName) {
   const split = fileName.split(".");
   return (split[split.length - 1] || "").toLowerCase();
 }
 
-function isAllowedFile(file, tabName) {
+function isAllowedFile(file) {
   const mime = (file.type || "").toLowerCase();
   const ext = getFileExtension(file.name);
-  return ACCEPTED_MIME[tabName].includes(mime) || ACCEPTED_EXT[tabName].includes(ext);
+  const allMimes = [
+    ...ACCEPTED_MIME.imagens,
+    ...ACCEPTED_MIME.videos,
+  ];
+  const allExts = [
+    ...ACCEPTED_EXT.imagens,
+    ...ACCEPTED_EXT.videos,
+  ];
+  return allMimes.includes(mime) || allExts.includes(ext);
+}
+
+function getFileType(file) {
+  const mime = (file.type || "").toLowerCase();
+  const ext = getFileExtension(file.name);
+  
+  if (ACCEPTED_MIME.imagens.includes(mime) || ACCEPTED_EXT.imagens.includes(ext)) {
+    return "image";
+  }
+  if (ACCEPTED_MIME.videos.includes(mime) || ACCEPTED_EXT.videos.includes(ext)) {
+    return "video";
+  }
+  return null;
 }
 
 function updateInputAccept() {
-  const accepted = state.activeTab === "imagens"
-    ? ".jpg,.jpeg,.png,.gif,.webp"
-    : ".mp4,.webm,.ogg";
-  fileInput.setAttribute("accept", accepted);
+  const imageExts = ACCEPTED_EXT.imagens.map(e => `.${e}`).join(",");
+  const videoExts = ACCEPTED_EXT.videos.map(e => `.${e}`).join(",");
+  fileInput.setAttribute("accept", `${imageExts},${videoExts}`);
 }
 
-function setTab(tabName) {
-  state.activeTab = tabName;
-
-  tabs.forEach((tab) => {
-    const isActive = tab.dataset.tab === tabName;
-    tab.classList.toggle("active", isActive);
-    tab.setAttribute("aria-selected", String(isActive));
-  });
-
-  Object.entries(panels).forEach(([name, panel]) => {
-    const isActive = name === tabName;
-    panel.classList.toggle("active", isActive);
-    panel.hidden = !isActive;
-  });
-
-  updateInputAccept();
-}
-
-function openLightboxById(imageId) {
-  const images = getCurrentImages();
-  const index = images.findIndex((item) => item.id === imageId);
+function openLightboxById(itemId) {
+  const allItems = [
+    ...getCurrentFolders().filter(f => f.type !== "folder"),
+    ...getCurrentImages(),
+    ...getCurrentVideos(),
+  ].filter(item => item.type === "image" || item.type === "video");
+  
+  const index = allItems.findIndex((item) => item.id === itemId);
   if (index === -1) {
     return;
   }
@@ -170,8 +397,13 @@ function goToPrevImage() {
 }
 
 function goToNextImage() {
-  const images = getCurrentImages();
-  if (state.lightboxIndex >= images.length - 1) {
+  const allItems = [
+    ...getCurrentFolders().filter(f => f.type !== "folder"),
+    ...getCurrentImages(),
+    ...getCurrentVideos(),
+  ].filter(item => item.type === "image" || item.type === "video");
+  
+  if (state.lightboxIndex >= allItems.length - 1) {
     return;
   }
   state.lightboxIndex += 1;
@@ -182,22 +414,40 @@ function closeImagePreview() {
   imageModal.hidden = true;
   state.lightboxIndex = -1;
   lightboxImage.src = "";
+  lightboxImage.hidden = true;
+  lightboxVideo.src = "";
+  lightboxVideo.hidden = true;
   lightboxCaption.textContent = "";
 }
 
 function updateLightbox() {
-  const images = getCurrentImages();
-  if (images.length === 0 || state.lightboxIndex < 0 || state.lightboxIndex >= images.length) {
+  const allItems = [
+    ...getCurrentFolders().filter(f => f.type !== "folder"),
+    ...getCurrentImages(),
+    ...getCurrentVideos(),
+  ].filter(item => item.type === "image" || item.type === "video");
+  
+  if (allItems.length === 0 || state.lightboxIndex < 0 || state.lightboxIndex >= allItems.length) {
     closeImagePreview();
     return;
   }
 
-  const current = images[state.lightboxIndex];
-  lightboxImage.src = current.url;
-  lightboxImage.alt = current.name;
-  lightboxCaption.textContent = `${current.name} (${state.lightboxIndex + 1}/${images.length})`;
+  const current = allItems[state.lightboxIndex];
+  
+  if (current.type === "image") {
+    lightboxImage.src = current.url;
+    lightboxImage.alt = current.name;
+    lightboxImage.hidden = false;
+    lightboxVideo.hidden = true;
+  } else if (current.type === "video") {
+    lightboxVideo.src = current.url;
+    lightboxVideo.hidden = false;
+    lightboxImage.hidden = true;
+  }
+  
+  lightboxCaption.textContent = `${current.name} (${state.lightboxIndex + 1}/${allItems.length})`;
   prevImageBtn.disabled = state.lightboxIndex === 0;
-  nextImageBtn.disabled = state.lightboxIndex === images.length - 1;
+  nextImageBtn.disabled = state.lightboxIndex === allItems.length - 1;
 }
 
 function getItemById(id) {
@@ -211,7 +461,7 @@ function getFolderPath() {
     path.unshift(folder.name);
     folder = getItemById(folder.parentId);
   }
-  return path.length ? `Raiz / ${path.join(" / ")}` : "Raiz";
+  return path.length ? path.join(" / ") : "";
 }
 
 function updateFolderPath() {
@@ -219,7 +469,63 @@ function updateFolderPath() {
 }
 
 function updateBackButton() {
-  backBtn.hidden = !state.currentFolderId;
+  const hasActiveFolder = state.currentFolderId !== null && getItemById(state.currentFolderId);
+  backBtn.hidden = !hasActiveFolder;
+  backBtn.style.display = hasActiveFolder ? "inline-flex" : "none";
+}
+
+function updateToolbarView() {
+  const isRoot = !state.currentFolderId;
+  if (!toolbar) {
+    return;
+  }
+  toolbar.classList.toggle("root-view", isRoot);
+  toolbar.classList.toggle("folder-view", !isRoot);
+}
+
+function getCoverImageForFolder(folder) {
+  if (!folder?.coverId) {
+    return null;
+  }
+  return getItemById(folder.coverId);
+}
+
+async function setFolderCover(folderId) {
+  const folder = getItemById(folderId);
+  if (!folder) {
+    return;
+  }
+  const availableImages = state.items.filter((item) => item.parentId === folderId && item.type === "image");
+  if (!availableImages.length) {
+    showToast("Não há imagens nesta pasta para usar como capa", "warning");
+    return;
+  }
+
+  showItemSelectionModal(
+    "Definir capa da pasta",
+    `Escolha a imagem que será usada como capa de "${folder.name}"`,
+    availableImages,
+    async (item) => {
+      folder.coverId = item.id;
+      const record = {
+        id: folder.id,
+        name: folder.name,
+        size: folder.size,
+        mimeType: folder.mimeType || "",
+        type: folder.type,
+        category: folder.category,
+        parentId: folder.parentId,
+        createdAt: folder.createdAt,
+        coverId: folder.coverId,
+      };
+      if (folder.blob) {
+        record.blob = folder.blob;
+      }
+      await dbPut(record);
+      showToast(`Capa definida para "${folder.name}"`, "success");
+      renderAll();
+    }
+  );
 }
 
 function getDescendantIds(parentId) {
@@ -244,13 +550,49 @@ function getCurrentVideos() {
 }
 
 function selectItem(itemId) {
-  state.selectedItemId = itemId;
-  renderAll();
+  const prev = document.querySelector('.card.selected');
+  if (prev && prev.dataset.id !== itemId) {
+    // Pausa vídeo que estava sendo reproduzido no cartão anterior
+    const prevVideo = prev.querySelector('video');
+    if (prevVideo && !prevVideo.paused) {
+      try { prevVideo.pause(); prevVideo.currentTime = 0; } catch (e) { /* ignore */ }
+    }
+    prev.classList.remove('selected');
+  }
+
+  const card = document.querySelector(`.card[data-id="${itemId}"]`);
+  if (card) {
+    card.classList.add('selected');
+    state.selectedItemId = itemId;
+  } else {
+    state.selectedItemId = null;
+  }
 }
 
 function clearSelection() {
+  const prev = document.querySelector('.card.selected');
+  if (prev) {
+    const prevVideo = prev.querySelector('video');
+    if (prevVideo && !prevVideo.paused) {
+      try { prevVideo.pause(); prevVideo.currentTime = 0; } catch (e) { /* ignore */ }
+    }
+    prev.classList.remove('selected');
+  }
   state.selectedItemId = null;
-  renderAll();
+}
+
+function pauseUnselectedVideos() {
+  const videos = document.querySelectorAll('.gallery-grid .card[data-type="video"] video');
+  videos.forEach((video) => {
+    const card = video.closest('.card');
+    if (!card) return;
+    if (!card.classList.contains('selected')) {
+      try {
+        if (!video.paused) video.pause();
+        try { video.currentTime = 0; } catch (e) { /* ignore */ }
+      } catch (e) { /* ignore */ }
+    }
+  });
 }
 
 function toggleFabMenu(event) {
@@ -260,11 +602,13 @@ function toggleFabMenu(event) {
   const isOpen = !fabMenu.hidden;
   fabMenu.hidden = isOpen;
   fabToggleBtn.setAttribute("aria-expanded", String(!isOpen));
+  fabToggleBtn.classList.toggle("open", !isOpen);
 }
 
 function closeFabMenu() {
   fabMenu.hidden = true;
   fabToggleBtn.setAttribute("aria-expanded", "false");
+  fabToggleBtn.classList.remove("open");
 }
 
 async function addFiles(selectedFiles) {
@@ -273,13 +617,20 @@ async function addFiles(selectedFiles) {
     return;
   }
 
-  const allowedLabel = state.activeTab === "imagens"
-    ? "JPG, JPEG, PNG, GIF, WEBP"
-    : "MP4, WEBM, OGG";
+  let addedCount = 0;
+  let imageCount = 0;
+  let videoCount = 0;
+  const errors = [];
 
   for (const file of files) {
-    if (!isAllowedFile(file, state.activeTab)) {
-      window.alert(`Arquivo invalido para a aba ${state.activeTab}. Use: ${allowedLabel}.`);
+    if (!isAllowedFile(file)) {
+      errors.push(`${file.name} - formato não suportado`);
+      continue;
+    }
+
+    const fileType = getFileType(file);
+    if (!fileType) {
+      errors.push(`${file.name} - tipo desconhecido`);
       continue;
     }
 
@@ -288,8 +639,8 @@ async function addFiles(selectedFiles) {
       name: file.name,
       size: file.size,
       mimeType: file.type,
-      type: state.activeTab === "imagens" ? "image" : "video",
-      category: state.activeTab,
+      type: fileType,
+      category: fileType === "image" ? "imagens" : "videos",
       parentId: state.currentFolderId,
       createdAt: Date.now(),
       blob: file,
@@ -301,31 +652,58 @@ async function addFiles(selectedFiles) {
       ...record,
       url: URL.createObjectURL(file),
     });
+
+    addedCount++;
+    if (fileType === "image") {
+      imageCount++;
+    } else {
+      videoCount++;
+    }
+  }
+
+  // Mostrar feedback
+  if (addedCount > 0) {
+    const parts = [];
+    if (imageCount > 0) parts.push(`${imageCount} imagem${imageCount !== 1 ? "s" : ""}`);
+    if (videoCount > 0) parts.push(`${videoCount} vídeo${videoCount !== 1 ? "s" : ""}`);
+    showToast(`✓ ${parts.join(" e ")} adicionado${addedCount !== 1 ? "s" : ""}!`, "success");
+  }
+
+  if (errors.length > 0) {
+    showToast(`⚠ ${errors.length} arquivo${errors.length !== 1 ? "s" : ""} com erro`, "warning");
   }
 
   renderAll();
 }
 
 async function createFolder() {
-  const folderName = window.prompt("Nome da nova pasta:");
-  if (!folderName || !folderName.trim()) {
-    return;
-  }
+  showInputModal(
+    "Criar Nova Pasta",
+    "Digite o nome da pasta:",
+    "",
+    async (folderName) => {
+      if (!folderName) {
+        showToast("Nome da pasta não pode estar vazio", "warning");
+        return;
+      }
 
-  const record = {
-    id: makeId(),
-    name: folderName.trim(),
-    size: 0,
-    mimeType: "",
-    type: "folder",
-    category: "pastas",
-    parentId: state.currentFolderId,
-    createdAt: Date.now(),
-  };
+      const record = {
+        id: makeId(),
+        name: folderName.trim(),
+        size: 0,
+        mimeType: "",
+        type: "folder",
+        category: "pastas",
+        parentId: state.currentFolderId,
+        createdAt: Date.now(),
+      };
 
-  await dbPut(record);
-  state.items.unshift(record);
-  renderAll();
+      await dbPut(record);
+      state.items.unshift(record);
+      showToast(`Pasta "${folderName}" criada com sucesso!`, "success");
+      renderAll();
+    }
+  );
 }
 
 async function editItemName(itemId) {
@@ -334,39 +712,94 @@ async function editItemName(itemId) {
     return;
   }
 
-  const newName = window.prompt("Digite um novo nome:", item.name);
-  if (!newName || !newName.trim() || newName.trim() === item.name) {
-    return;
-  }
+  showInputModal(
+    "Editar Nome",
+    "Digite um novo nome:",
+    item.name,
+    async (newName) => {
+      if (!newName || newName.trim() === item.name) {
+        return;
+      }
 
-  item.name = newName.trim();
-  const record = {
-    id: item.id,
-    name: item.name,
-    size: item.size,
-    mimeType: item.mimeType || "",
-    type: item.type,
-    category: item.category,
-    parentId: item.parentId,
-    createdAt: item.createdAt,
-  };
+      item.name = newName.trim();
+      const record = {
+        id: item.id,
+        name: item.name,
+        size: item.size,
+        mimeType: item.mimeType || "",
+        type: item.type,
+        category: item.category,
+        parentId: item.parentId,
+        createdAt: item.createdAt,
+      };
 
-  if (item.blob) {
-    record.blob = item.blob;
-  }
+      if (item.coverId) {
+        record.coverId = item.coverId;
+      }
+      if (item.blob) {
+        record.blob = item.blob;
+      }
 
-  await dbPut(record);
-  renderAll();
+      await dbPut(record);
+      showToast(`Item renomeado para "${newName}"`, "success");
+      renderAll();
+    }
+  );
 }
 
 function triggerEditName() {
-  if (!state.selectedItemId) {
-    window.alert("Selecione uma imagem, vídeo ou pasta para editar.");
+  closeFabMenu();
+
+  const availableItems = state.items.filter(item => 
+    item.parentId === state.currentFolderId
+  );
+
+  if (!availableItems.length) {
+    showToast("Nenhum item para editar", "warning");
     return;
   }
 
-  editItemName(state.selectedItemId);
+  if (state.selectedItemId) {
+    // Se há item selecionado, editar direto
+    editItemName(state.selectedItemId);
+  } else {
+    // Mostrar modal para selecionar qual item editar
+    showItemSelectionModal(
+      "Selecionar Item",
+      "Qual item você deseja editar?",
+      availableItems,
+      (item) => {
+        editItemName(item.id);
+      }
+    );
+  }
+}
+
+async function triggerDeleteItem() {
   closeFabMenu();
+
+  const availableItems = state.items.filter(item =>
+    item.parentId === state.currentFolderId
+  );
+
+  if (!availableItems.length) {
+    showToast("Nenhum item para excluir", "warning");
+    return;
+  }
+
+  if (state.selectedItemId) {
+    await removeItem(state.selectedItemId);
+    return;
+  }
+
+  showItemSelectionModal(
+    "Selecionar Item",
+    "Qual item você deseja excluir?",
+    availableItems,
+    async (item) => {
+      await removeItem(item.id);
+    }
+  );
 }
 
 function openFolder(folderId) {
@@ -396,7 +829,8 @@ function renderImageGallery() {
 
   const folders = getCurrentFolders();
   const images = getCurrentImages();
-  const items = [...folders, ...images];
+  const videos = getCurrentVideos();
+  const items = [...folders, ...images, ...videos];
 
   items.forEach((item) => {
     const card = document.createElement("article");
@@ -415,10 +849,25 @@ function renderImageGallery() {
     if (item.type === "folder") {
       card.classList.add("folder-card");
 
-      const folderIcon = document.createElement("div");
-      folderIcon.className = "folder-icon";
-      folderIcon.textContent = "📁";
-      mediaWrap.append(folderIcon);
+      const coverImage = getCoverImageForFolder(item);
+      if (coverImage) {
+        const img = document.createElement("img");
+        img.src = coverImage.url;
+        img.alt = `Capa da pasta ${item.name}`;
+        mediaWrap.append(img);
+      } else {
+        const folderIcon = document.createElement("div");
+        folderIcon.className = "folder-icon";
+        folderIcon.textContent = "📁";
+        mediaWrap.append(folderIcon);
+      }
+    } else if (item.type === "video") {
+      const video = document.createElement("video");
+      video.src = item.url;
+      video.controls = true;
+      video.preload = "metadata";
+      video.className = "video-preview";
+      mediaWrap.append(video);
     } else {
       const img = document.createElement("img");
       img.src = item.url;
@@ -428,9 +877,23 @@ function renderImageGallery() {
 
     const body = document.createElement("div");
     body.className = "card-body";
+    
+    let subtitle = "";
+    if (item.type === "folder") {
+      const folderItems = state.items.filter(i => i.parentId === item.id && i.type !== "folder");
+      const imageCount = folderItems.filter(i => i.type === "image").length;
+      const videoCount = folderItems.filter(i => i.type === "video").length;
+      const parts = [];
+      if (imageCount > 0) parts.push(`${imageCount} imagem${imageCount !== 1 ? "s" : ""}`);
+      if (videoCount > 0) parts.push(`${videoCount} vídeo${videoCount !== 1 ? "s" : ""}`);
+      subtitle = parts.length > 0 ? parts.join(", ") : "Pasta vazia";
+    } else {
+      subtitle = formatSize(item.size);
+    }
+    
     body.innerHTML = `
       <p class="card-title" title="${item.name}">${makeCardTitle(item.name)}</p>
-      <p class="card-sub">${item.type === "folder" ? "Pasta" : formatSize(item.size)}</p>
+      <p class="card-sub">${subtitle}</p>
     `;
 
     const actions = document.createElement("div");
@@ -450,75 +913,35 @@ function renderImageGallery() {
     deleteBtn.dataset.action = "delete";
     deleteBtn.dataset.id = item.id;
 
-    actions.append(editBtn, deleteBtn);
+    actions.append(editBtn);
+
+    if (item.type === "folder") {
+      const coverBtn = document.createElement("button");
+      coverBtn.className = "cover-btn";
+      coverBtn.type = "button";
+      coverBtn.textContent = "Capa";
+      coverBtn.dataset.action = "cover";
+      coverBtn.dataset.id = item.id;
+      actions.append(coverBtn);
+    }
+
+    actions.append(deleteBtn);
     card.append(mediaWrap, body, actions);
     imageGallery.append(card);
   });
 
   emptyImages.hidden = items.length > 0;
+  emptyImages.textContent = state.currentFolderId
+    ? "Nenhum item nesta pasta"
+    : "Nenhuma pasta criada. Crie uma pasta para começar.";
 }
 
-function renderVideoGallery() {
-  videoGallery.innerHTML = "";
-
-  const videos = getCurrentVideos();
-
-  videos.forEach((item) => {
-    const card = document.createElement("article");
-    card.className = "card";
-    card.dataset.id = item.id;
-
-    if (item.id === state.selectedItemId) {
-      card.classList.add("selected");
-    }
-
-    const mediaWrap = document.createElement("div");
-    mediaWrap.className = "card-media-wrap";
-
-    const video = document.createElement("video");
-    video.src = item.url;
-    video.controls = true;
-    video.preload = "metadata";
-
-    const deleteBtn = document.createElement("button");
-    deleteBtn.className = "delete-btn";
-    deleteBtn.type = "button";
-    deleteBtn.textContent = "Excluir";
-    deleteBtn.dataset.action = "delete";
-    deleteBtn.dataset.id = item.id;
-
-    mediaWrap.append(video, deleteBtn);
-
-    const body = document.createElement("div");
-    body.className = "card-body";
-    body.innerHTML = `
-      <p class="card-title" title="${item.name}">${makeCardTitle(item.name)}</p>
-      <p class="card-sub">${formatSize(item.size)}</p>
-    `;
-
-    const actions = document.createElement("div");
-    actions.className = "card-actions";
-
-    const editBtn = document.createElement("button");
-    editBtn.className = "edit-btn";
-    editBtn.type = "button";
-    editBtn.textContent = "Editar";
-    editBtn.dataset.action = "edit";
-    editBtn.dataset.id = item.id;
-
-    actions.append(editBtn);
-    card.append(mediaWrap, body, actions);
-    videoGallery.append(card);
-  });
-
-  emptyVideos.hidden = videos.length > 0;
-}
 
 function renderAll() {
   renderImageGallery();
-  renderVideoGallery();
   updateFolderPath();
   updateBackButton();
+  updateToolbarView();
   if (!imageModal.hidden) {
     updateLightbox();
   }
@@ -550,21 +973,6 @@ async function moveImageToFolder(imageId, folderId) {
   renderAll();
 }
 
-function toggleVideoPlayback(itemId) {
-  const card = videoGallery.querySelector(`.card[data-id="${itemId}"]`);
-  if (!card) {
-    return;
-  }
-  const video = card.querySelector("video");
-  if (!video) {
-    return;
-  }
-  if (video.paused) {
-    video.play();
-  } else {
-    video.pause();
-  }
-}
 
 async function removeItem(itemId) {
   const item = getItemById(itemId);
@@ -572,32 +980,34 @@ async function removeItem(itemId) {
     return;
   }
 
-  const confirmed = window.confirm(`Deseja excluir "${item.name}"?`);
-  if (!confirmed) {
-    return;
-  }
+  showConfirmModal(
+    "Confirmar Exclusão",
+    `Tem certeza que deseja excluir "${item.name}"?`,
+    async () => {
+      const childrenIds = getDescendantIds(itemId);
+      const idsToRemove = [itemId, ...childrenIds];
 
-  const childrenIds = getDescendantIds(itemId);
-  const idsToRemove = [itemId, ...childrenIds];
+      for (const id of idsToRemove) {
+        const removed = getItemById(id);
+        if (removed?.url) {
+          URL.revokeObjectURL(removed.url);
+        }
+        await dbDelete(id);
+      }
 
-  for (const id of idsToRemove) {
-    const removed = getItemById(id);
-    if (removed?.url) {
-      URL.revokeObjectURL(removed.url);
+      state.items = state.items.filter((item) => !idsToRemove.includes(item.id));
+      if (idsToRemove.includes(state.selectedItemId)) {
+        state.selectedItemId = null;
+      }
+
+      if (state.currentFolderId && !getItemById(state.currentFolderId)) {
+        state.currentFolderId = null;
+      }
+
+      showToast(`"${item.name}" foi excluído com sucesso!`, "error");
+      renderAll();
     }
-    await dbDelete(id);
-  }
-
-  state.items = state.items.filter((item) => !idsToRemove.includes(item.id));
-  if (idsToRemove.includes(state.selectedItemId)) {
-    state.selectedItemId = null;
-  }
-
-  if (state.currentFolderId && !getItemById(state.currentFolderId)) {
-    state.currentFolderId = null;
-  }
-
-  renderAll();
+  );
 }
 
 async function loadFromDatabase() {
@@ -616,6 +1026,7 @@ async function loadFromDatabase() {
       parentId: record.parentId || null,
       createdAt: record.createdAt,
       blob: record.blob,
+      coverId: record.coverId || null,
     };
     if (type === "image" || type === "video") {
       item.url = URL.createObjectURL(record.blob);
@@ -625,20 +1036,21 @@ async function loadFromDatabase() {
 }
 
 function bindEvents() {
-  tabs.forEach((tab) => {
-    tab.addEventListener("click", () => setTab(tab.dataset.tab));
-  });
-
   backBtn.addEventListener("click", goBack);
   fabToggleBtn.addEventListener("click", toggleFabMenu);
   fabAddPhoto.addEventListener("click", () => {
-    setTab("imagens");
     fileInput.setAttribute("accept", ".jpg,.jpeg,.png,.gif,.webp");
+    fileInput.click();
+  });
+
+  fabAddVideo.addEventListener("click", () => {
+    fileInput.setAttribute("accept", ".mp4,.webm,.ogg");
     fileInput.click();
   });
 
   fabAddFolder.addEventListener("click", createFolder);
   fabEditName.addEventListener("click", triggerEditName);
+  fabDeleteItem.addEventListener("click", triggerDeleteItem);
 
   fileInput.addEventListener("change", async (event) => {
     await addFiles(event.target.files);
@@ -656,6 +1068,10 @@ function bindEvents() {
         return;
       }
 
+      if (action === "cover") {
+        await setFolderCover(itemId);
+        return;
+      }
       if (action === "edit") {
         await editItemName(itemId);
         return;
@@ -675,36 +1091,11 @@ function bindEvents() {
         openFolder(itemId);
         return;
       }
-      if (itemType === "image") {
+      if (itemType === "image" || itemType === "video") {
         openLightboxById(itemId);
         return;
       }
       selectItem(itemId);
-    }
-  });
-
-  videoGallery.addEventListener("click", async (event) => {
-    const button = event.target.closest("button[data-action]");
-    if (!button) {
-      const card = event.target.closest(".card");
-      if (card) {
-        toggleVideoPlayback(card.dataset.id);
-      }
-      return;
-    }
-
-    const action = button.dataset.action;
-    const itemId = button.dataset.id;
-    if (!itemId) {
-      return;
-    }
-
-    if (action === "edit") {
-      await editItemName(itemId);
-      return;
-    }
-    if (action === "delete") {
-      await removeItem(itemId);
     }
   });
 
@@ -762,6 +1153,14 @@ function bindEvents() {
     if (!fabMenu.contains(event.target) && event.target !== fabToggleBtn) {
       closeFabMenu();
     }
+
+    // Se o clique foi fora de qualquer card, limpa seleção (e pausa vídeo se houver)
+    const clickedCard = event.target.closest && event.target.closest('.card');
+    if (!clickedCard) {
+      clearSelection();
+    }
+    // Pausa todos vídeos que não estão em cards selecionados
+    pauseUnselectedVideos();
   });
 
   window.addEventListener("keydown", (event) => {
@@ -820,7 +1219,8 @@ async function init() {
     renderAll();
   } catch (error) {
     console.error("Falha ao inicializar galeria:", error);
-    window.alert("Nao foi possivel iniciar a galeria persistente neste navegador.");
+    const errorMsg = error?.message || "Erro desconhecido";
+    window.alert(`Não foi possível iniciar a galeria.\n\nDetalhes: ${errorMsg}\n\nTente atualizar a página ou usar outro navegador.`);
   }
 }
 

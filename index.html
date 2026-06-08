@@ -3,11 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GALERIA // DDS7</title>
+  <title>NEXARIUM ÔMEGA</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
+  <link rel="icon" type="image/png" sizes="96x96" href="logotipo/logo.png" />
+  <link rel="apple-touch-icon" href="logotipo/logo.png" />
+  <link rel="shortcut icon" href="logotipo/logo.png" />
 </head>
 <body>
   <!-- Decorações de fundo do design system -->
@@ -39,22 +42,19 @@
   </div>
 
   <header class="header">
-    <h1>FORMATURA DDS7</h1>
-    <p>Galeria neon de imagens e videos da turma</p>
+    <div class="header-inner">
+      <img src="logotipo/logo.png" alt="Logotipo Nexarium Ômega" class="site-logo" />
+      <div class="header-text">
+        <h1>NEXARIUM ÔMEGA</h1>
+        <p>Galeria neon oficial da Nexarium Ômega</p>
+      </div>
+    </div>
     <div id="clock" class="clock">00:00:00</div>
   </header>
 
   <main class="page">
     <div class="toolbar">
       <div class="toolbar-left">
-        <div class="tabs" role="tablist" aria-label="Tipos de arquivo">
-          <button class="tab-btn active" role="tab" aria-selected="true" aria-controls="panel-imagens" id="tab-imagens" data-tab="imagens">
-            Imagens
-          </button>
-          <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-videos" id="tab-videos" data-tab="videos">
-            Videos
-          </button>
-        </div>
         <button id="backBtn" class="back-button" type="button" hidden>Voltar</button>
       </div>
       <div class="toolbar-right">
@@ -63,14 +63,9 @@
     </div>
 
     <section class="content">
-      <div class="panel active" id="panel-imagens" role="tabpanel" aria-labelledby="tab-imagens">
+      <div class="panel active" id="panel-imagens">
         <div id="imageGallery" class="gallery-grid" aria-live="polite"></div>
-        <p id="emptyImages" class="empty-state">Nenhuma imagem no banco de dados</p>
-      </div>
-
-      <div class="panel" id="panel-videos" role="tabpanel" aria-labelledby="tab-videos" hidden>
-        <div id="videoGallery" class="gallery-grid" aria-live="polite"></div>
-        <p id="emptyVideos" class="empty-state">Nenhum video no banco de dados</p>
+        <p id="emptyImages" class="empty-state">Nenhum item no banco de dados</p>
       </div>
     </section>
   </main>
@@ -81,19 +76,24 @@
     <button id="fabToggleBtn" class="fab-btn" type="button" aria-expanded="false" aria-label="Abrir menu de ações">+</button>
     <div id="fabMenu" class="fab-menu" hidden>
       <button id="fabAddPhoto" class="fab-item" type="button">Adicionar foto</button>
+      <button id="fabAddVideo" class="fab-item" type="button">Adicionar vídeo</button>
       <button id="fabAddFolder" class="fab-item" type="button">Adicionar pasta</button>
       <button id="fabEditName" class="fab-item" type="button">Editar nome</button>
+      <button id="fabDeleteItem" class="fab-item fab-item-danger" type="button">Excluir item</button>
     </div>
   </div>
 
-  <!-- Lightbox -->
+  <!-- Lightbox de imagem e vídeo -->
   <div id="imageModal" class="modal" hidden>
     <div class="lightbox" role="dialog" aria-modal="true" aria-label="Visualizacao ampliada">
       <button id="closeImageModal" class="close-lightbox" type="button" aria-label="Fechar visualizacao">&times;</button>
       <div class="lightbox-stage">
-        <button id="prevImageBtn" class="lightbox-nav lightbox-nav-prev" type="button" aria-label="Imagem anterior">&#8249;</button>
-        <img id="lightboxImage" alt="Imagem ampliada" />
-        <button id="nextImageBtn" class="lightbox-nav lightbox-nav-next" type="button" aria-label="Proxima imagem">&#8250;</button>
+        <button id="prevImageBtn" class="lightbox-nav lightbox-nav-prev" type="button" aria-label="Anterior">&#8249;</button>
+        <div id="lightboxContent" class="lightbox-content">
+          <img id="lightboxImage" alt="Visualização ampliada" hidden />
+          <video id="lightboxVideo" controls hidden></video>
+        </div>
+        <button id="nextImageBtn" class="lightbox-nav lightbox-nav-next" type="button" aria-label="Próximo">&#8250;</button>
       </div>
       <p id="lightboxCaption"></p>
     </div>
