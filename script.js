@@ -19,6 +19,8 @@ const panels = {
 const imageGallery = document.getElementById("imageGallery");
 const emptyImages = document.getElementById("emptyImages");
 const backBtn = document.getElementById("backBtn");
+const viewImagesBtn = document.getElementById("viewImagesBtn");
+const viewVideosBtn = document.getElementById("viewVideosBtn");
 const folderPath = document.getElementById("folderPath");
 const toolbar = document.querySelector(".toolbar");
 const fileInput = document.getElementById("fileInput");
@@ -46,6 +48,7 @@ const state = {
   selectedItemId: null,
   items: [],
   lightboxIndex: -1,
+  viewMode: "imagens",
 };
 
 let db;
@@ -454,99 +457,30 @@ function getItemById(id) {
   return state.items.find((item) => item.id === id) || null;
 }
 
-function getFolderPath() {
-  const path = [];
-  let folder = getItemById(state.currentFolderId);
-  while (folder) {
-    path.unshift(folder.name);
-    folder = getItemById(folder.parentId);
-  }
-  return path.length ? path.join(" / ") : "";
-}
-
-function updateFolderPath() {
-  folderPath.textContent = getFolderPath();
-}
-
-function updateBackButton() {
-  const hasActiveFolder = state.currentFolderId !== null && getItemById(state.currentFolderId);
-  backBtn.hidden = !hasActiveFolder;
-  backBtn.style.display = hasActiveFolder ? "inline-flex" : "none";
-}
-
-function updateToolbarView() {
-  const isRoot = !state.currentFolderId;
-  if (!toolbar) {
+function updateViewToggle() {
+  if (!viewImagesBtn || !viewVideosBtn) {
     return;
   }
-  toolbar.classList.toggle("root-view", isRoot);
-  toolbar.classList.toggle("folder-view", !isRoot);
+  viewImagesBtn.classList.toggle("active", state.viewMode === "imagens");
+  viewVideosBtn.classList.toggle("active", state.viewMode === "videos");
 }
 
-function getCoverImageForFolder(folder) {
-  if (!folder?.coverId) {
-    return null;
-  }
-  return getItemById(folder.coverId);
-}
-
-async function setFolderCover(folderId) {
-  const folder = getItemById(folderId);
-  if (!folder) {
+function setViewMode(mode) {
+  if (state.viewMode === mode) {
     return;
   }
-  const availableImages = state.items.filter((item) => item.parentId === folderId && item.type === "image");
-  if (!availableImages.length) {
-    showToast("Não há imagens nesta pasta para usar como capa", "warning");
-    return;
-  }
-
-  showItemSelectionModal(
-    "Definir capa da pasta",
-    `Escolha a imagem que será usada como capa de "${folder.name}"`,
-    availableImages,
-    async (item) => {
-      folder.coverId = item.id;
-      const record = {
-        id: folder.id,
-        name: folder.name,
-        size: folder.size,
-        mimeType: folder.mimeType || "",
-        type: folder.type,
-        category: folder.category,
-        parentId: folder.parentId,
-        createdAt: folder.createdAt,
-        coverId: folder.coverId,
-      };
-      if (folder.blob) {
-        record.blob = folder.blob;
-      }
-      await dbPut(record);
-      showToast(`Capa definida para "${folder.name}"`, "success");
-      renderAll();
-    }
-  );
+  state.viewMode = mode;
+  updateViewToggle();
+  renderAll();
 }
 
-function getDescendantIds(parentId) {
-  const children = state.items.filter((item) => item.parentId === parentId);
-  return children.reduce((acc, child) => acc.concat(child.id, getDescendantIds(child.id)), []);
-}
-
-function getItemsByType(type) {
-  return state.items.filter((item) => item.type === type && item.parentId === state.currentFolderId);
-}
-
-function getCurrentFolders() {
-  return getItemsByType("folder");
-}
-
-function getCurrentImages() {
-  return getItemsByType("image");
-}
-
-function getCurrentVideos() {
-  return getItemsByType("video");
+function createGalleryDivider(label) {
+  const divider = document.createElement("div");
+  divider.className = "divider";
+  const span = document.createElement("span");
+  span.textContent = label;
+  divider.append(span);
+  return divider;
 }
 
 function selectItem(itemId) {
@@ -676,36 +610,6 @@ async function addFiles(selectedFiles) {
   renderAll();
 }
 
-async function createFolder() {
-  showInputModal(
-    "Criar Nova Pasta",
-    "Digite o nome da pasta:",
-    "",
-    async (folderName) => {
-      if (!folderName) {
-        showToast("Nome da pasta não pode estar vazio", "warning");
-        return;
-      }
-
-      const record = {
-        id: makeId(),
-        name: folderName.trim(),
-        size: 0,
-        mimeType: "",
-        type: "folder",
-        category: "pastas",
-        parentId: state.currentFolderId,
-        createdAt: Date.now(),
-      };
-
-      await dbPut(record);
-      state.items.unshift(record);
-      showToast(`Pasta "${folderName}" criada com sucesso!`, "success");
-      renderAll();
-    }
-  );
-}
-
 async function editItemName(itemId) {
   const item = getItemById(itemId);
   if (!item) {
@@ -802,42 +706,42 @@ async function triggerDeleteItem() {
   );
 }
 
-function openFolder(folderId) {
-  state.currentFolderId = folderId;
-  state.selectedItemId = null;
-  updateFolderPath();
-  updateBackButton();
-  renderAll();
-  closeFabMenu();
-}
-
-function goBack() {
-  if (!state.currentFolderId) {
-    return;
-  }
-
-  const current = getItemById(state.currentFolderId);
-  state.currentFolderId = current?.parentId || null;
-  state.selectedItemId = null;
-  updateFolderPath();
-  updateBackButton();
-  renderAll();
-}
-
 function renderImageGallery() {
   imageGallery.innerHTML = "";
 
   const folders = getCurrentFolders();
   const images = getCurrentImages();
   const videos = getCurrentVideos();
-  const items = [...folders, ...images, ...videos];
+  const items = [...folders];
+  const isInsideFolder = state.currentFolderId !== null && getItemById(state.currentFolderId);
+  const showImages = isInsideFolder ? state.viewMode === "imagens" : true;
+  const showVideos = isInsideFolder ? state.viewMode === "videos" : true;
+
+  if (showImages) {
+    items.push(...images);
+  }
+  if (showVideos) {
+    items.push(...videos);
+  }
+
+  if (isInsideFolder && showImages && showVideos && images.length > 0 && videos.length > 0) {
+    items.length = folders.length;
+    items.push(...images.sort((a, b) => b.createdAt - a.createdAt));
+    items.push({ type: "divider", label: "Vídeos" });
+    items.push(...videos.sort((a, b) => b.createdAt - a.createdAt));
+  }
 
   items.forEach((item) => {
+    if (item.type === "divider") {
+      imageGallery.append(createGalleryDivider(item.label));
+      return;
+    }
+
     const card = document.createElement("article");
     card.className = "card";
     card.dataset.id = item.id;
     card.dataset.type = item.type;
-    card.draggable = item.type === "image";
+    card.draggable = item.type === "image" || item.type === "video";
 
     if (item.id === state.selectedItemId) {
       card.classList.add("selected");
@@ -930,10 +834,16 @@ function renderImageGallery() {
     imageGallery.append(card);
   });
 
-  emptyImages.hidden = items.length > 0;
-  emptyImages.textContent = state.currentFolderId
-    ? "Nenhum item nesta pasta"
-    : "Nenhuma pasta criada. Crie uma pasta para começar.";
+  const hasItems = items.length > 0;
+  emptyImages.hidden = hasItems;
+
+  if (!hasItems) {
+    if (state.currentFolderId) {
+      emptyImages.textContent = state.viewMode === "imagens" ? "Nenhuma imagem nesta pasta" : "Nenhum vídeo nesta pasta";
+    } else {
+      emptyImages.textContent = state.viewMode === "imagens" ? "Nenhuma imagem adicionada ainda" : "Nenhum vídeo adicionado ainda";
+    }
+  }
 }
 
 
@@ -1038,6 +948,8 @@ async function loadFromDatabase() {
 function bindEvents() {
   backBtn.addEventListener("click", goBack);
   fabToggleBtn.addEventListener("click", toggleFabMenu);
+  viewImagesBtn.addEventListener("click", () => setViewMode("imagens"));
+  viewVideosBtn.addEventListener("click", () => setViewMode("videos"));
   fabAddPhoto.addEventListener("click", () => {
     fileInput.setAttribute("accept", ".jpg,.jpeg,.png,.gif,.webp");
     fileInput.click();
@@ -1111,7 +1023,7 @@ function bindEvents() {
 
   imageGallery.addEventListener("dragstart", (event) => {
     const card = event.target.closest(".card");
-    if (!card || card.dataset.type !== "image") {
+    if (!card || card.dataset.type === "folder") {
       return;
     }
     event.dataTransfer.setData("text/plain", card.dataset.id);
@@ -1211,9 +1123,11 @@ function startClock() {
 
 async function init() {
   try {
-    startClock();
+    // Abrir DB e carregar os itens antes da primeira renderização
     db = await openDatabase();
     await loadFromDatabase();
+
+    startClock();
     bindEvents();
     updateInputAccept();
     renderAll();
