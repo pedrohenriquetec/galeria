@@ -70,6 +70,7 @@ async function setFolderCover(folderId) {
         parentId: folder.parentId,
         createdAt: folder.createdAt,
         coverId: folder.coverId,
+        ownerId: folder.ownerId || state.currentUserId,
       };
       if (folder.blob) {
         record.blob = folder.blob;
@@ -122,6 +123,7 @@ async function createFolder() {
         category: "pastas",
         parentId: state.currentFolderId,
         createdAt: Date.now(),
+        ownerId: state.currentUserId,
       };
 
       await dbPut(record);

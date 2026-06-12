@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="pt-BR" class="bg-base use-bg-image">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#08030f" />
+  <meta name="description" content="Galeria neon oficial da Nexarium Ômega - organize imagens, vídeos e pastas com um visual cyberpunk." />
+  <title>NEXARIUM ÔMEGA — Galeria Neon</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" type="image/png" sizes="96x96" href="logotipo/logo.png" />
+  <link rel="apple-touch-icon" href="logotipo/logo.png" />
+  <link rel="shortcut icon" href="logotipo/logo.png" />
+</head>
+<body>
+  <!-- Camadas decorativas de fundo -->
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="background-decoration" aria-hidden="true">
+    <span class="gradient-orb orb-1"></span>
+    <span class="gradient-orb orb-2"></span>
+    <span class="gradient-orb orb-3"></span>
+    <span class="gradient-orb orb-4"></span>
+    <span class="gradient-orb orb-5"></span>
+    <span class="gradient-orb orb-6"></span>
+  </div>
+
+  <div class="particles" aria-hidden="true">
+    <span class="particle"></span><span class="particle"></span><span class="particle"></span>
+    <span class="particle"></span><span class="particle"></span><span class="particle"></span>
+    <span class="particle"></span><span class="particle"></span><span class="particle"></span>
+    <span class="particle"></span><span class="particle"></span><span class="particle"></span>
+    <span class="particle"></span><span class="particle"></span><span class="particle"></span>
+  </div>
+
+  <!-- Cabeçalho -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo-frame">
+        <img src="logotipo/logo.png" alt="Logotipo Nexarium Ômega" class="site-logo" />
+      </div>
+      <div class="header-text">
+        <span class="header-eyebrow">Galeria oficial</span>
+        <h1>NEXARIUM ÔMEGA</h1>
+        <p>Seu acervo neon de imagens, vídeos e pastas</p>
+      </div>
+    </div>
+    <div class="clock-wrap">
+      <span class="clock-label">Horário do sistema</span>
+      <div id="clock" class="clock">00:00:00</div>
+    </div>
+  </header>
+
+  <main class="page">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <button id="backBtn" class="back-button" type="button" hidden>
+          <span class="back-arrow" aria-hidden="true">&#8592;</span> Voltar
+        </button>
+        <div class="view-toggle" aria-label="Filtrar por tipo de mídia">
+          <button id="viewImagesBtn" class="tab-btn active" type="button">
+            <span class="tab-dot" aria-hidden="true"></span> Imagens
+          </button>
+          <button id="viewVideosBtn" class="tab-btn" type="button">
+            <span class="tab-dot" aria-hidden="true"></span> Vídeos
+          </button>
+        </div>
+      </div>
+      <div class="toolbar-right">
+        <div id="folderPath" class="folder-path" hidden aria-hidden="true"></div>        <div class="user-panel">
+          <span id="userEmail" class="user-email"></span>
+          <button id="logoutBtn" class="logout-button" type="button">Sair</button>
+        </div>      </div>
+    </div>
+
+    <section class="content">
+      <div class="panel active" id="panel-imagens">
+        <div id="imageGallery" class="gallery-grid" aria-live="polite"></div>
+        <p id="emptyImages" class="empty-state">
+          <span class="empty-icon" aria-hidden="true">&#9671;</span>
+          <span class="empty-title">Nenhum item no banco de dados</span>
+          <span class="empty-sub">Use o botão <strong>+</strong> no canto inferior para adicionar mídias.</span>
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <input id="fileInput" type="file" multiple hidden />
+
+  <!-- Botão flutuante de ações -->
+  <div class="fab-container" aria-label="Ações rápidas">
+    <div id="fabMenu" class="fab-menu" hidden>
+      <button id="fabAddPhoto" class="fab-item" type="button">
+        <span class="fab-item-icon" aria-hidden="true">&#9635;</span> Adicionar foto
+      </button>
+      <button id="fabAddVideo" class="fab-item" type="button">
+        <span class="fab-item-icon" aria-hidden="true">&#9658;</span> Adicionar vídeo
+      </button>
+      <button id="fabAddFolder" class="fab-item" type="button">
+        <span class="fab-item-icon" aria-hidden="true">&#9633;</span> Adicionar pasta
+      </button>
+      <button id="fabEditName" class="fab-item" type="button">
+        <span class="fab-item-icon" aria-hidden="true">&#9998;</span> Editar nome
+      </button>
+      <button id="fabDeleteItem" class="fab-item fab-item-danger" type="button">
+        <span class="fab-item-icon" aria-hidden="true">&#10005;</span> Excluir item
+      </button>
+    </div>
+    <button id="fabToggleBtn" class="fab-btn" type="button" aria-expanded="false" aria-label="Abrir menu de ações">
+      <span class="fab-icon" aria-hidden="true">+</span>
+    </button>
+  </div>
+
+  <!-- Lightbox de imagem e vídeo -->
+  <div id="imageModal" class="modal" hidden>
+    <div class="lightbox" role="dialog" aria-modal="true" aria-label="Visualização ampliada">
+      <button id="closeImageModal" class="close-lightbox" type="button" aria-label="Fechar visualização">&times;</button>
+      <div class="lightbox-stage">
+        <button id="prevImageBtn" class="lightbox-nav lightbox-nav-prev" type="button" aria-label="Anterior">&#8249;</button>
+        <div id="lightboxContent" class="lightbox-content">
+          <img id="lightboxImage" alt="Visualização ampliada" hidden />
+          <video id="lightboxVideo" controls hidden></video>
+        </div>
+        <button id="nextImageBtn" class="lightbox-nav lightbox-nav-next" type="button" aria-label="Próximo">&#8250;</button>
+      </div>
+      <p id="lightboxCaption"></p>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script src="pastas.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

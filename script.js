@@ -24,6 +24,8 @@ const viewVideosBtn = document.getElementById("viewVideosBtn");
 const folderPath = document.getElementById("folderPath");
 const toolbar = document.querySelector(".toolbar");
 const fileInput = document.getElementById("fileInput");
+const logoutBtn = document.getElementById("logoutBtn");
+const userEmail = document.getElementById("userEmail");
 
 
 const imageModal = document.getElementById("imageModal");
@@ -46,6 +48,7 @@ const fabDeleteItem = document.getElementById("fabDeleteItem");
 const state = {
   currentFolderId: null,
   selectedItemId: null,
+  currentUserId: null,
   items: [],
   lightboxIndex: -1,
   viewMode: "imagens",
@@ -578,8 +581,9 @@ async function addFiles(selectedFiles) {
       parentId: state.currentFolderId,
       createdAt: Date.now(),
       blob: file,
+      ownerId: state.currentUserId,
     };
-
+    
     await dbPut(record);
 
     state.items.unshift({
@@ -635,6 +639,7 @@ async function editItemName(itemId) {
         category: item.category,
         parentId: item.parentId,
         createdAt: item.createdAt,
+        ownerId: item.ownerId || state.currentUserId,
       };
 
       if (item.coverId) {
@@ -874,6 +879,7 @@ async function moveImageToFolder(imageId, folderId) {
     category: item.category,
     parentId: item.parentId,
     createdAt: item.createdAt,
+    ownerId: item.ownerId || state.currentUserId,
   };
   if (item.blob) {
     record.blob = item.blob;
@@ -882,7 +888,6 @@ async function moveImageToFolder(imageId, folderId) {
   await dbPut(record);
   renderAll();
 }
-
 
 async function removeItem(itemId) {
   const item = getItemById(itemId);
@@ -924,7 +929,17 @@ async function loadFromDatabase() {
   const storedItems = await dbGetAll();
   storedItems.sort((a, b) => b.createdAt - a.createdAt);
 
-  state.items = storedItems.map((record) => {
+  state.items = [];
+  for (const record of storedItems) {
+    if (!record.ownerId) {
+      record.ownerId = state.currentUserId;
+      await dbPut(record);
+    }
+
+    if (record.ownerId !== state.currentUserId) {
+      continue;
+    }
+
     const type = record.type || (record.category === "videos" ? "video" : "image");
     const item = {
       id: record.id,
@@ -937,12 +952,13 @@ async function loadFromDatabase() {
       createdAt: record.createdAt,
       blob: record.blob,
       coverId: record.coverId || null,
+      ownerId: record.ownerId,
     };
     if (type === "image" || type === "video") {
       item.url = URL.createObjectURL(record.blob);
     }
-    return item;
-  });
+    state.items.push(item);
+  }
 }
 
 function bindEvents() {
@@ -1123,6 +1139,15 @@ function startClock() {
 
 async function init() {
   try {
+    const session = window.auth?.requireAuth();
+    if (!session) {
+      return;
+    }
+    state.currentUserId = session.userId;
+    if (userEmail) {
+      userEmail.textContent = session.email;
+    }
+
     // Abrir DB e carregar os itens antes da primeira renderização
     db = await openDatabase();
     await loadFromDatabase();

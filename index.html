@@ -4,20 +4,18 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#08030f" />
-  <meta name="description" content="Galeria neon oficial da Nexarium Ômega - organize imagens, vídeos e pastas com um visual cyberpunk." />
-  <title>NEXARIUM ÔMEGA — Galeria Neon</title>
+  <meta name="description" content="Login da galeria neon oficial da Nexarium Ômega." />
+  <title>Entrar — NEXARIUM ÔMEGA</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
-
   <link rel="stylesheet" href="style.css" />
   <link rel="icon" type="image/png" sizes="96x96" href="logotipo/logo.png" />
   <link rel="apple-touch-icon" href="logotipo/logo.png" />
   <link rel="shortcut icon" href="logotipo/logo.png" />
 </head>
-<body>
-  <!-- Camadas decorativas de fundo -->
+<body class="auth-page">
   <div class="bg-grid" aria-hidden="true"></div>
   <div class="background-decoration" aria-hidden="true">
     <span class="gradient-orb orb-1"></span>
@@ -28,107 +26,39 @@
     <span class="gradient-orb orb-6"></span>
   </div>
 
-  <div class="particles" aria-hidden="true">
-    <span class="particle"></span><span class="particle"></span><span class="particle"></span>
-    <span class="particle"></span><span class="particle"></span><span class="particle"></span>
-    <span class="particle"></span><span class="particle"></span><span class="particle"></span>
-    <span class="particle"></span><span class="particle"></span><span class="particle"></span>
-    <span class="particle"></span><span class="particle"></span><span class="particle"></span>
-  </div>
-
-  <!-- Cabeçalho -->
-  <header class="header">
-    <div class="header-inner">
-      <div class="logo-frame">
-        <img src="logotipo/logo.png" alt="Logotipo Nexarium Ômega" class="site-logo" />
-      </div>
-      <div class="header-text">
-        <span class="header-eyebrow">Galeria oficial</span>
-        <h1>NEXARIUM ÔMEGA</h1>
-        <p>Seu acervo neon de imagens, vídeos e pastas</p>
-      </div>
-    </div>
-    <div class="clock-wrap">
-      <span class="clock-label">Horário do sistema</span>
-      <div id="clock" class="clock">00:00:00</div>
-    </div>
-  </header>
-
-  <main class="page">
-    <div class="toolbar">
-      <div class="toolbar-left">
-        <button id="backBtn" class="back-button" type="button" hidden>
-          <span class="back-arrow" aria-hidden="true">&#8592;</span> Voltar
-        </button>
-        <div class="view-toggle" aria-label="Filtrar por tipo de mídia">
-          <button id="viewImagesBtn" class="tab-btn active" type="button">
-            <span class="tab-dot" aria-hidden="true"></span> Imagens
-          </button>
-          <button id="viewVideosBtn" class="tab-btn" type="button">
-            <span class="tab-dot" aria-hidden="true"></span> Vídeos
-          </button>
+  <main class="auth-wrapper" role="main">
+    <section class="auth-card" aria-labelledby="authTitle">
+      <div class="auth-brand">
+        <img src="logotipo/logo.png" alt="Logotipo Nexarium Ômega" class="auth-logo" />
+        <div>
+          <p class="auth-eyebrow">NEXARIUM ÔMEGA</p>
+          <h1 id="authTitle">Olá, entre para acessar sua galeria</h1>
+          <p class="auth-description">Use uma conta para acessar e gerenciar suas imagens e vídeos com estilo neon.</p>
         </div>
       </div>
-      <div class="toolbar-right">
-        <div id="folderPath" class="folder-path" hidden aria-hidden="true"></div>
-      </div>
-    </div>
 
-    <section class="content">
-      <div class="panel active" id="panel-imagens">
-        <div id="imageGallery" class="gallery-grid" aria-live="polite"></div>
-        <p id="emptyImages" class="empty-state">
-          <span class="empty-icon" aria-hidden="true">&#9671;</span>
-          <span class="empty-title">Nenhum item no banco de dados</span>
-          <span class="empty-sub">Use o botão <strong>+</strong> no canto inferior para adicionar mídias.</span>
-        </p>
+      <div class="auth-toggle" role="tablist" aria-label="Alternar entre login e cadastro">
+        <button id="loginModeBtn" type="button" class="auth-toggle-btn active" role="tab" aria-selected="true">Login</button>
+        <button id="registerModeBtn" type="button" class="auth-toggle-btn" role="tab" aria-selected="false">Cadastro</button>
       </div>
+
+      <form id="authForm" class="auth-form">
+        <label class="auth-field">
+          <span>Email</span>
+          <input id="authEmail" type="email" inputmode="email" autocomplete="email" required placeholder="seu@email.com" />
+        </label>
+        <label class="auth-field">
+          <span>Senha</span>
+          <input id="authPassword" type="password" autocomplete="current-password" required placeholder="••••••••" minlength="6" />
+        </label>
+
+        <button id="authSubmitBtn" class="auth-submit" type="submit">Entrar</button>
+      </form>
+
+      <p id="authMessage" class="auth-message" aria-live="polite"></p>
     </section>
   </main>
 
-  <input id="fileInput" type="file" multiple hidden />
-
-  <!-- Botão flutuante de ações -->
-  <div class="fab-container" aria-label="Ações rápidas">
-    <div id="fabMenu" class="fab-menu" hidden>
-      <button id="fabAddPhoto" class="fab-item" type="button">
-        <span class="fab-item-icon" aria-hidden="true">&#9635;</span> Adicionar foto
-      </button>
-      <button id="fabAddVideo" class="fab-item" type="button">
-        <span class="fab-item-icon" aria-hidden="true">&#9658;</span> Adicionar vídeo
-      </button>
-      <button id="fabAddFolder" class="fab-item" type="button">
-        <span class="fab-item-icon" aria-hidden="true">&#9633;</span> Adicionar pasta
-      </button>
-      <button id="fabEditName" class="fab-item" type="button">
-        <span class="fab-item-icon" aria-hidden="true">&#9998;</span> Editar nome
-      </button>
-      <button id="fabDeleteItem" class="fab-item fab-item-danger" type="button">
-        <span class="fab-item-icon" aria-hidden="true">&#10005;</span> Excluir item
-      </button>
-    </div>
-    <button id="fabToggleBtn" class="fab-btn" type="button" aria-expanded="false" aria-label="Abrir menu de ações">
-      <span class="fab-icon" aria-hidden="true">+</span>
-    </button>
-  </div>
-
-  <!-- Lightbox de imagem e vídeo -->
-  <div id="imageModal" class="modal" hidden>
-    <div class="lightbox" role="dialog" aria-modal="true" aria-label="Visualização ampliada">
-      <button id="closeImageModal" class="close-lightbox" type="button" aria-label="Fechar visualização">&times;</button>
-      <div class="lightbox-stage">
-        <button id="prevImageBtn" class="lightbox-nav lightbox-nav-prev" type="button" aria-label="Anterior">&#8249;</button>
-        <div id="lightboxContent" class="lightbox-content">
-          <img id="lightboxImage" alt="Visualização ampliada" hidden />
-          <video id="lightboxVideo" controls hidden></video>
-        </div>
-        <button id="nextImageBtn" class="lightbox-nav lightbox-nav-next" type="button" aria-label="Próximo">&#8250;</button>
-      </div>
-      <p id="lightboxCaption"></p>
-    </div>
-  </div>
-
-  <script src="pastas.js"></script>
-  <script src="script.js"></script>
+  <script src="auth.js"></script>
 </body>
 </html>

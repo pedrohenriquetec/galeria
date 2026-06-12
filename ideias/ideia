@@ -1,0 +1,41 @@
+Descrição completa da funcionalidade:
+
+Implementar um sistema de armazenamento em nuvem utilizando o Google Drive como infraestrutura para armazenar fotos e vídeos. Cada usuário da plataforma terá um espaço exclusivo de 15 GB, permitindo o envio, organização e gerenciamento de seus arquivos de forma independente.
+
+O armazenamento deve ser totalmente isolado entre as contas, garantindo que o uso de espaço por um usuário não afete o limite disponível para os demais. Cada conta poderá utilizar seus próprios 15 GB sem compartilhar capacidade com outras contas da plataforma.
+
+Além do armazenamento, o sistema deverá possuir um mecanismo avançado de busca global, capaz de localizar rapidamente pastas, fotos e vídeos específicos. A pesquisa deverá analisar todos os arquivos cadastrados na plataforma e retornar resultados com base em critérios como nome do arquivo, nome da pasta, palavras-chave, data de criação, tipo de arquivo e outros metadados relevantes.
+
+Funcionalidades principais
+Armazenamento de fotos e vídeos na nuvem.
+Limite de 15 GB por conta, com controle individual de uso.
+Isolamento completo entre os usuários.
+Upload, visualização, download, movimentação e exclusão de arquivos.
+Organização por pastas e subpastas.
+Exibição do espaço utilizado e disponível.
+Sistema de permissões e segurança para proteger os arquivos.
+Escalabilidade para suportar milhares de usuários simultaneamente.
+Sistema de busca global
+
+Implementar uma ferramenta de pesquisa inteligente que permita localizar rapidamente qualquer conteúdo armazenado na plataforma.
+
+Recursos da busca:
+
+Buscar por nome de pasta.
+Buscar por nome de foto ou vídeo.
+Buscar por extensões de arquivo (JPG, PNG, MP4, MOV, etc.).
+Buscar por data de envio.
+Buscar por tamanho do arquivo.
+Buscar por palavras-chave.
+Exibir resultados instantaneamente.
+Permitir filtros avançados para refinar a pesquisa.
+Observação importante de segurança
+
+Caso a busca seja realizada em todas as contas da plataforma, o sistema deve respeitar as permissões de acesso. Usuários comuns devem visualizar apenas os arquivos que possuem autorização para acessar. A pesquisa global em todas as contas deve ficar restrita a administradores ou a usuários com permissões específicas, evitando exposição indevida de arquivos privados.
+
+Exemplo de funcionamento
+Usuário A: 12 GB utilizados de 15 GB.
+Usuário B: 3 GB utilizados de 15 GB.
+Usuário C: 15 GB utilizados de 15 GB.
+
+Ao pesquisar por "Férias 2026", o sistema deverá localizar automaticamente todas as pastas, fotos e vídeos relacionados ao termo pesquisado, exibindo os resultados de forma organizada e respeitando as permissões de acesso definidas para cada usuário.
